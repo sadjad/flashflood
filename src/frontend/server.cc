@@ -26,6 +26,7 @@ struct Connection
 
   TCPSocket socket;
   string buffer {};
+  bool done { false };
 };
 
 int main( int argc, char* argv[] )
@@ -51,7 +52,7 @@ int main( int argc, char* argv[] )
     listener_socket.set_blocking( false );
     listener_socket.set_reuseaddr();
     listener_socket.bind( listen_address );
-    listener_socket.listen();
+    listener_socket.listen( 1024 );
 
     list<TCPSocket> new_sockets;
     list<Connection> connections;
@@ -81,8 +82,6 @@ int main( int argc, char* argv[] )
       },
       [] { return true; } );
 
-    // event_loop.set_fd_failure_callback( [] {} );
-
     while ( event_loop.wait_next_event( -1 ) != EventLoop::Result::Exit ) {
       while ( not new_sockets.empty() ) {
         connections.emplace_back( move( new_sockets.front() ) );
@@ -92,6 +91,7 @@ int main( int argc, char* argv[] )
 
         event_loop.add_rule(
           el_client_category,
+          Direction::In,
           conn_it->socket,
           [conn_it, &connections, &total_sum, &READ_BUFFER] {
             const auto len = conn_it->socket.read( { READ_BUFFER } );
@@ -105,13 +105,16 @@ int main( int argc, char* argv[] )
 
             if ( end_of_input != string::npos ) {
               total_sum += stoi( conn_it->buffer.substr( 0, end_of_input ) );
-              conn_it->socket.shutdown( SHUT_RDWR );
+              conn_it->done = true;
             }
           },
           [] { return true; },
-          [] {},
-          [] { return false; },
-          [conn_it, &connections] { connections.erase( conn_it ); } );
+          [conn_it, &connections] {
+            if ( not conn_it->done ) {
+              cerr << "connection dropped" << endl;
+            }
+            connections.erase( conn_it );
+          } );
       }
     }
 
