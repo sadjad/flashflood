@@ -1,6 +1,6 @@
-cmake_minimum_required ( VERSION 2.8.5 )
+cmake_minimum_required ( VERSION 3.0.0 )
 cmake_policy ( SET CMP0054 NEW )
-project ( Starter )
+project ( FlashFlood )
 
 include ( etc/build_defs.cmake )
 include ( etc/build_type.cmake )
@@ -21,13 +21,13 @@ file ( GLOB SOURCE
 
 include_directories ( src )
 
-add_library( starter STATIC
+add_library( flashflood STATIC
   ${SOURCE}
   ${OPENSSL_LIBRARIES}
 )
 
 set ( ALL_LIBS
-  starter
+  flashflood
 )
 
 # add_executable ( executable-name src/frontend/executable.cc )
@@ -40,3 +40,9 @@ set ( ALL_LIBS
 # if ( CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES ASan )
 #   set( STATIC_LINK_FLAGS "" )
 # endif()
+
+add_executable ( client src/frontend/client.cc )
+target_link_libraries( client ${ALL_LIBS} )
+
+add_executable ( server src/frontend/server.cc )
+target_link_libraries( server ${ALL_LIBS} )
